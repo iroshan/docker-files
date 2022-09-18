@@ -1,0 +1,82 @@
+version: "3"
+networks:
+  npm-internal:
+  npm-proxy:
+    external: true
+    
+    
+    
+services:
+  npm-app:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: npm-app
+    restart: unless-stopped
+    ports:
+      - '80:80' # Public HTTP Port
+      - '443:443' # Public HTTPS Port
+      - '81:81' # Admin Web Port
+      # Add any other Stream port you want to expose
+      # - '21:21' # FTP
+    environment:
+      DB_MYSQL_HOST: "npm-db"
+      DB_MYSQL_PORT: 3306
+      DB_MYSQL_USER: "npm"
+      DB_MYSQL_PASSWORD: "npm"
+      DB_MYSQL_NAME: "npm"
+      # Uncomment the line below if IPv6 is not enabled on your host
+      # DISABLE_IPV6: 'true'
+    volumes:
+      - ./apps/npm/data:/data
+      - ./apps/npm/letsencrypt:/etc/letsencrypt
+    depends_on:
+      - npm-db
+    networks:
+      - npm-proxy
+      - npm-internal
+
+  npm-db:
+    image: 'mariadb:latest'
+    container_name: npm-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 'npm'
+      MYSQL_DATABASE: 'npm'
+      MYSQL_USER: 'npm'
+      MYSQL_PASSWORD: 'npm'
+    volumes:
+      - ./apps/npm/data/mysql:/var/lib/mysql
+    networks:
+      - npm-internal
+      
+  ###################################
+  portainer:
+    image: portainer/portainer-ee:latest
+    container_name: portainer
+    restart: always
+    privileged: true
+    volumes:
+      - ./apps/portainer/data:/data:Z
+      - /var/run/docker.sock:/var/run/docker.sock:Z
+    ports:
+      - 9443:9443
+    
+####################################
+
+  gitea:
+    image: gitea/gitea:latest
+    container_name: gitea
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+    restart: always
+    volumes:
+      - ./apps/gitea/container-data/data:/data:Z
+      - /etc/timezone:/etc/timezone
+      - /etc/localtime:/etc/localtime
+  #  ports:
+  #    - "3000:3000"
+    networks:
+      - npm-proxy
+
+####################################
+
