@@ -80,3 +80,38 @@ services:
 
 ####################################
 
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    networks:
+      - npm-proxy#    
+  #  ports:
+#     - "8080:8080"    
+      
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      DOZZLE_LEVEL: info
+      DOZZLE_TAILSIZE: 300
+      DOZZLE_FILTER: "status=running"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock 
+
+  # File Browser - Explorer
+  filebrowser:
+    image: filebrowser/filebrowser:s6
+    container_name: filebrowser
+#    ports:
+#      - "82:80" # 80 and 81 are used by Nginx Proxy Manager
+    volumes:
+      - $DOCKERDIR/appdata/filebrowser:/config 
+      - $USERDIR:/srv
+    networks:
+        - npm-proxy
+    security_opt:
+        - no-new-privileges:true
+    restart: always
+    environment:
+        TZ: $TZ
+        PUID: $PUID
+        PGID: $PGID
